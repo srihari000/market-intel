@@ -7,6 +7,7 @@ on:
     branches: [main]
 
 jobs:
+  # ── Backend: test ──────────────────────────────────────────────
   test-backend:
     runs-on: ubuntu-latest
     defaults:
@@ -23,41 +24,58 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run tests
+        env:
+          DATABASE_URL: sqlite+aiosqlite:///./test.db
+          JWT_SECRET_KEY: test-secret-key-for-ci
+          OPENAI_API_KEY: sk-test-not-used-in-unit-tests
         run: python -m pytest tests/ -v
 
-  build-frontend:
+  # ── Backend: build + push Docker image ────────────────────────
+  build-push-backend:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: test-backend
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
         with:
-          node-version: "18"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - run: npm ci
-      - run: npm run build
+      - name: Build and push backend image
+        id: meta
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/market-intel-backend:latest,${{ secrets.DOCKERHUB_USERNAME }}/market-intel-backend:${{ github.sha }}
 
+  # ── Backend: deploy to Azure Container Apps ───────────────────
   deploy-backend:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    needs: [test-backend, build-frontend]
+    needs: build-push-backend
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: azure/webapps-deploy@v3
+      - name: Azure login
+        uses: azure/login@v2
         with:
-          app-name: ${{ secrets.AZURE_BACKEND_APP_NAME }}
-          publish-profile: ${{ secrets.AZURE_BACKEND_PUBLISH_PROFILE }}
-          package: ./backend
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      - name: Deploy to Container Apps
+        run: |
+          az containerapp update \
+            --name ${{ secrets.AZURE_CONTAINER_APP_NAME }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --image ${{ secrets.DOCKERHUB_USERNAME }}/market-intel-backend:${{ github.sha }}
+
+  # ── Frontend: build + deploy to Azure Static Web Apps ─────────
   deploy-frontend:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    needs: [test-backend, build-frontend]
+    needs: test-backend
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -72,11 +90,14 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - run: npm ci
-      - run: npm run build
+
+      - name: Build frontend
+        run: npm run build
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
 
-      - uses: Azure/static-web-apps-deploy@v1
+      - name: Deploy to Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
