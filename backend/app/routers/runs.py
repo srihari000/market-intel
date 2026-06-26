@@ -72,13 +72,14 @@ async def get_report(
     current_user: User = Depends(get_current_user),
 ):
     result = await db.execute(select(Run).where(Run.id == run_id, Run.user_id == current_user.id))
-    if not result.scalar_one_or_none():
+    run = result.scalar_one_or_none()
+    if not run:
         raise HTTPException(status_code=404, detail="Run not found")
     result = await db.execute(select(Report).where(Report.run_id == run_id))
     report = result.scalar_one_or_none()
     if not report:
         raise HTTPException(status_code=404, detail="Report not ready")
-    return report
+    return ReportOut.from_orm_with_sources(report, run.source_urls)
 
 
 @router.delete("/{run_id}", status_code=204)
@@ -93,6 +94,7 @@ async def delete_run(
         raise HTTPException(status_code=404, detail="Run not found")
     await db.delete(run)
     await db.commit()
+
 
 
 @router.get("/{run_id}/stream")
@@ -111,6 +113,16 @@ async def stream_run(
         async def not_found():
             yield f"data: {json.dumps({'type': 'error', 'message': 'Run not found'})}\n\n"
         return StreamingResponse(not_found(), media_type="text/event-stream")
+
+    if run.status == "completed":
+        async def already_done():
+            yield f"data: {json.dumps({'type': 'error', 'message': 'Run already completed'})}\n\n"
+        return StreamingResponse(already_done(), media_type="text/event-stream")
+
+    if run.status == "processing":
+        async def already_running():
+            yield f"data: {json.dumps({'type': 'error', 'message': 'Run is already in progress'})}\n\n"
+        return StreamingResponse(already_running(), media_type="text/event-stream")
 
     async def event_generator():
         async for event in run_pipeline(run, db):

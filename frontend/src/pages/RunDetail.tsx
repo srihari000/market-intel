@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import { runsApi } from '../api/client';
 import type { Run, Report } from '../types';
 import StreamProgress from '../components/StreamProgress';
@@ -7,6 +7,7 @@ import ReportViewer from '../components/ReportViewer';
 
 export default function RunDetail() {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const [run, setRun] = useState<Run | null>(null);
   const [report, setReport] = useState<Report | null>(null);
   const [streaming, setStreaming] = useState(false);
@@ -16,23 +17,25 @@ export default function RunDetail() {
     if (!id) return;
     runsApi.get(id).then(res => {
       setRun(res.data);
-      if (res.data.status === 'pending' || res.data.status === 'processing') {
-        setStreaming(true);
-      } else if (res.data.status === 'completed') {
+      if (res.data.status === 'completed') {
         runsApi.getReport(id).then(r => setReport(r.data));
+      } else if (res.data.status === 'pending' && location.state?.autoStart) {
+        setStreaming(true);
       }
     });
   }, [id]);
 
   async function handleComplete() {
     if (!id) return;
-    setStreaming(false);
-    const [runRes, reportRes] = await Promise.all([
-      runsApi.get(id),
-      runsApi.getReport(id),
-    ]);
-    setRun(runRes.data);
-    setReport(reportRes.data);
+    try {
+      const reportRes = await runsApi.getReport(id);
+      setRun(prev => prev ? { ...prev, status: 'completed' } : prev);
+      setReport(reportRes.data);
+      setStreaming(false);
+    } catch {
+      setStreaming(false);
+      setStreamError('Failed to load results. Please refresh.');
+    }
   }
 
   function handleStreamError(msg: string) {
@@ -64,7 +67,11 @@ export default function RunDetail() {
           )}
         </div>
 
-        {(run.status === 'pending' || run.status === 'processing') && streaming && (
+        {(run.status === 'pending' || run.status === 'processing') && !streaming && (
+          <p className="muted">Analysis in progress…</p>
+        )}
+
+        {streaming && (
           <StreamProgress
             url={streamUrl}
             onComplete={handleComplete}

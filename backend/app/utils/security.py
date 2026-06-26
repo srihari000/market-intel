@@ -42,18 +42,18 @@ async def get_current_user(
 ):
     from app.models.user import User
     user_id = decode_token(credentials.credentials)
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
-    if not user:
+    result = await db.execute(select(User.id, User.email).where(User.id == user_id))
+    row = result.first()
+    if not row:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
-    return user
+    return User(id=row.id, email=row.email)
 
 
 async def get_current_user_from_token(token: str, db: AsyncSession):
     from app.models.user import User
     user_id = decode_token(token)
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
-    if not user:
+    result = await db.execute(select(User.id, User.email).where(User.id == user_id))
+    row = result.first()
+    if not row:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
-    return user
+    return User(id=row.id, email=row.email)

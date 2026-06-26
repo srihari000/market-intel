@@ -136,8 +136,8 @@ button { cursor: pointer; font-family: inherit; }
 
 .run-card {
   display: flex;
-  align-items: center;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 0.6rem;
   padding: 1rem 1.25rem;
   background: white;
   border: 1px solid #e2e8f0;
@@ -148,8 +148,15 @@ button { cursor: pointer; font-family: inherit; }
 }
 .run-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.08); text-decoration: none; }
 
-.run-card-title { flex: 1; font-weight: 600; color: #1e293b; }
+.run-card-header { display: flex; align-items: center; justify-content: space-between; }
+.run-card-title { font-weight: 600; color: #1e293b; }
 .run-card-meta { display: flex; align-items: center; gap: 0.75rem; }
+
+.run-card-details { display: flex; flex-direction: column; gap: 0.3rem; }
+.run-detail-row { display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.82rem; }
+.detail-label { color: #94a3b8; min-width: 72px; padding-top: 0.1rem; }
+.detail-value { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.tag-url { background: #eff6ff; color: #2563eb; word-break: break-all; }
 
 .status-badge {
   padding: 0.2rem 0.6rem;
@@ -212,6 +219,8 @@ button { cursor: pointer; font-family: inherit; }
 /* Error */
 .error { color: #dc2626; font-size: 0.85rem; margin: 0; }
 .error-box { background: #fee2e2; border: 1px solid #fca5a5; border-radius: 8px; padding: 0.75rem 1rem; color: #991b1b; }
+.field-hint { font-size: 0.8rem; margin-top: 0.2rem; }
+.form-field { display: flex; flex-direction: column; gap: 0.35rem; }
 
 /* Run detail */
 .detail-main { display: flex; flex-direction: column; gap: 1.5rem; }
@@ -234,6 +243,24 @@ button { cursor: pointer; font-family: inherit; }
 .stream-event--complete { color: #6ee7b7; font-weight: 600; }
 .stream-event--error { color: #fca5a5; font-weight: 600; }
 .step-icon { font-size: 1rem; }
+
+/* Verdict badge — inline per theme/activity */
+.verdict-badge {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+  font-size: 0.82rem;
+}
+.verdict-icon { font-size: 0.9rem; }
+.verdict-badge--verified .verdict-label { color: #059669; font-weight: 600; }
+.verdict-badge--flagged .verdict-label { color: #dc2626; font-weight: 600; }
+.verdict-confidence { color: #64748b; }
+.verdict-reason { color: #b45309; font-style: italic; width: 100%; margin-top: 0.1rem; }
+
+.overall-verdict { display: flex; flex-direction: column; gap: 0.5rem; }
+.overall-score { font-size: 1.1rem; font-weight: 700; }
 
 /* Report */
 .report { display: flex; flex-direction: column; gap: 1.5rem; }

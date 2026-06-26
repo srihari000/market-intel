@@ -12,26 +12,67 @@ export default function StreamProgress({ url, onComplete, onError }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const es = new EventSource(url);
+    let cancelled = false;
+    let completed = false;
 
-    es.onmessage = (e) => {
-      const data: SSEEvent = JSON.parse(e.data);
-      setEvents(prev => [...prev, data]);
-      if (data.type === 'complete') {
-        es.close();
-        onComplete();
-      } else if (data.type === 'error') {
-        es.close();
-        onError(data.message || 'Pipeline failed');
+    async function readStream() {
+      try {
+        const res = await fetch(url);
+        if (!res.ok || !res.body) {
+          if (!cancelled) onError(`Server error (HTTP ${res.status})`);
+          return;
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+
+          if (done) {
+            // Stream closed by server
+            if (!cancelled && !completed) {
+              onError('Stream ended before pipeline completed');
+            }
+            break;
+          }
+
+          if (cancelled) break;
+
+          buffer += decoder.decode(value, { stream: true });
+
+          // SSE messages separated by double newline
+          const parts = buffer.split('\n\n');
+          buffer = parts.pop() ?? '';
+
+          for (const part of parts) {
+            const line = part.trim();
+            if (!line.startsWith('data: ')) continue;
+            let data: SSEEvent;
+            try {
+              data = JSON.parse(line.slice(6));
+            } catch {
+              continue;
+            }
+            setEvents(prev => [...prev, data]);
+            if (data.type === 'complete') {
+              completed = true;
+              if (!cancelled) onComplete();
+              return;
+            } else if (data.type === 'error') {
+              if (!cancelled) onError(data.message || 'Pipeline failed');
+              return;
+            }
+          }
+        }
+      } catch (err: any) {
+        if (!cancelled) onError(err?.message || 'Connection failed');
       }
-    };
+    }
 
-    es.onerror = () => {
-      es.close();
-      onError('Lost connection to server');
-    };
-
-    return () => es.close();
+    readStream();
+    return () => { cancelled = true; };
   }, [url]);
 
   useEffect(() => {

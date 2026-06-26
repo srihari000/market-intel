@@ -10,26 +10,28 @@ export interface Run {
   completed_at?: string;
 }
 
+export interface ClaimVerdict {
+  status: 'verified' | 'flagged';
+  confidence: number;
+  reason: string;
+}
+
 export interface Theme {
   theme: string;
   summary: string;
   source_indices: number[];
+  verdict: ClaimVerdict;
 }
 
 export interface CompetitorActivity {
   competitor: string;
   activity: string;
   source_index: number;
-}
-
-export interface FlaggedClaim {
-  claim: string;
-  reason: string;
+  verdict: ClaimVerdict;
 }
 
 export interface HallucinationVerdict {
-  score: number;
-  flagged_claims: FlaggedClaim[];
+  overall_score: number;
   reasoning: string;
 }
 
@@ -38,7 +40,7 @@ export interface Report {
   run_id: string;
   themes: Theme[];
   competitor_activities: CompetitorActivity[];
-  raw_sources: Record<string, string>;
+  source_urls: string[];
   hallucination_verdict: HallucinationVerdict;
   created_at: string;
 }

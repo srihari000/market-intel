@@ -2,78 +2,82 @@ import { useState, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { runsApi } from '../api/client';
 
-function TagInput({ label, values, onChange }: {
-  label: string;
-  values: string[];
-  onChange: (v: string[]) => void;
-}) {
-  const [input, setInput] = useState('');
-
-  function add() {
-    const trimmed = input.trim();
-    if (trimmed && !values.includes(trimmed)) {
-      onChange([...values, trimmed]);
-    }
-    setInput('');
+function extractError(err: any): string {
+  const detail = err?.response?.data?.detail;
+  if (!detail) return 'Failed to create run. Please try again.';
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail)) {
+    return detail
+      .map((d: any) => String(d.msg || '').replace(/^Value error,\s*/i, ''))
+      .filter(Boolean)
+      .join(' · ');
   }
-
-  function remove(i: number) {
-    onChange(values.filter((_, idx) => idx !== i));
-  }
-
-  return (
-    <div className="tag-field">
-      <label>{label}</label>
-      <div className="tag-row">
-        {values.map((v, i) => (
-          <span key={i} className="tag">
-            {v}
-            <button type="button" onClick={() => remove(i)}>×</button>
-          </span>
-        ))}
-      </div>
-      <div className="tag-input-row">
-        <input
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
-          placeholder="Type and press Enter"
-        />
-        <button type="button" className="btn-sm" onClick={add}>Add</button>
-      </div>
-    </div>
-  );
+  return 'Failed to create run. Please try again.';
 }
 
 export default function NewRun() {
   const navigate = useNavigate();
+
   const [title, setTitle] = useState('');
+  const [titleTouched, setTitleTouched] = useState(false);
+
   const [competitors, setCompetitors] = useState<string[]>([]);
+  const [competitorInput, setCompetitorInput] = useState('');
+
   const [topics, setTopics] = useState<string[]>([]);
+  const [topicInput, setTopicInput] = useState('');
+
   const [urls, setUrls] = useState<string[]>([]);
   const [urlInput, setUrlInput] = useState('');
-  const [error, setError] = useState('');
+  const [urlError, setUrlError] = useState('');
+
+  const [submitError, setSubmitError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const titleError = titleTouched && !title.trim() ? 'Title is required.' : '';
+  const competitorsError = competitors.length === 0 && submitError ? 'Add at least one competitor.' : '';
+  const urlsError = urls.length === 0 && submitError ? 'Add at least one source URL.' : '';
+
+  function addTag(value: string, list: string[], setList: (v: string[]) => void, setInput: (v: string) => void) {
+    const trimmed = value.trim();
+    if (trimmed && !list.includes(trimmed)) setList([...list, trimmed]);
+    setInput('');
+  }
+
+  function removeTag(i: number, list: string[], setList: (v: string[]) => void) {
+    setList(list.filter((_, idx) => idx !== i));
+  }
 
   function addUrl() {
     const trimmed = urlInput.trim();
-    if (trimmed && !urls.includes(trimmed)) {
-      setUrls(prev => [...prev, trimmed]);
+    if (!trimmed) return;
+    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+      setUrlError('URL must start with http:// or https://');
+      return;
     }
+    try { new URL(trimmed); } catch {
+      setUrlError('Invalid URL format.');
+      return;
+    }
+    if (!urls.includes(trimmed)) setUrls(prev => [...prev, trimmed]);
     setUrlInput('');
+    setUrlError('');
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (urls.length === 0) { setError('Add at least one source URL'); return; }
-    if (competitors.length === 0) { setError('Add at least one competitor'); return; }
-    setError('');
+    setTitleTouched(true);
+    if (!title.trim() || competitors.length === 0 || urls.length === 0) {
+      setSubmitError('Please fix the errors above.');
+      return;
+    }
+    setSubmitError('');
     setLoading(true);
     try {
-      const res = await runsApi.create({ title, competitors, topics, source_urls: urls });
-      navigate(`/runs/${res.data.id}`);
+      const res = await runsApi.create({ title: title.trim(), competitors, topics, source_urls: urls });
+      navigate(`/runs/${res.data.id}`, { state: { autoStart: true } });
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to create run');
+      setSubmitError(extractError(err));
       setLoading(false);
     }
   }
@@ -87,18 +91,67 @@ export default function NewRun() {
 
       <main className="form-page">
         <form onSubmit={handleSubmit} className="run-form">
-          <label>Title</label>
-          <input
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-            placeholder="Q3 Competitor Analysis"
-            required
-          />
 
-          <TagInput label="Competitors" values={competitors} onChange={setCompetitors} />
-          <TagInput label="Topics to track" values={topics} onChange={setTopics} />
+          {/* Title */}
+          <div className="form-field">
+            <label>Title</label>
+            <input
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              onBlur={() => setTitleTouched(true)}
+              placeholder="Q3 Competitor Analysis"
+              style={titleError ? { borderColor: '#dc2626' } : {}}
+            />
+            {titleError && <span className="field-hint error">{titleError}</span>}
+          </div>
 
-          <div className="tag-field">
+          {/* Competitors */}
+          <div className="form-field">
+            <label>Competitors</label>
+            <div className="tag-row">
+              {competitors.map((c, i) => (
+                <span key={i} className="tag">
+                  {c}
+                  <button type="button" onClick={() => removeTag(i, competitors, setCompetitors)}>×</button>
+                </span>
+              ))}
+            </div>
+            <div className="tag-input-row">
+              <input
+                value={competitorInput}
+                onChange={e => setCompetitorInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(competitorInput, competitors, setCompetitors, setCompetitorInput); } }}
+                placeholder="Type and press Enter"
+              />
+              <button type="button" className="btn-sm" onClick={() => addTag(competitorInput, competitors, setCompetitors, setCompetitorInput)}>Add</button>
+            </div>
+            {competitorsError && <span className="field-hint error">{competitorsError}</span>}
+          </div>
+
+          {/* Topics */}
+          <div className="form-field">
+            <label>Topics to track</label>
+            <div className="tag-row">
+              {topics.map((t, i) => (
+                <span key={i} className="tag">
+                  {t}
+                  <button type="button" onClick={() => removeTag(i, topics, setTopics)}>×</button>
+                </span>
+              ))}
+            </div>
+            <div className="tag-input-row">
+              <input
+                value={topicInput}
+                onChange={e => setTopicInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(topicInput, topics, setTopics, setTopicInput); } }}
+                placeholder="Type and press Enter"
+              />
+              <button type="button" className="btn-sm" onClick={() => addTag(topicInput, topics, setTopics, setTopicInput)}>Add</button>
+            </div>
+          </div>
+
+          {/* Source URLs */}
+          <div className="form-field">
             <label>Source URLs</label>
             <div className="tag-row">
               {urls.map((u, i) => (
@@ -111,20 +164,25 @@ export default function NewRun() {
             <div className="tag-input-row">
               <input
                 value={urlInput}
-                onChange={e => setUrlInput(e.target.value)}
+                onChange={e => { setUrlInput(e.target.value); setUrlError(''); }}
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addUrl(); } }}
                 placeholder="https://example.com/blog/post"
-                type="url"
+                style={urlError ? { borderColor: '#dc2626' } : {}}
               />
               <button type="button" className="btn-sm" onClick={addUrl}>Add</button>
             </div>
+            {urlError && <span className="field-hint error">{urlError}</span>}
+            {urlsError && <span className="field-hint error">{urlsError}</span>}
           </div>
 
-          {error && <p className="error">{error}</p>}
+          {submitError && (
+            <p className="error">{submitError}</p>
+          )}
 
           <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? 'Creating…' : 'Start Analysis'}
+            {loading ? 'Creating…' : 'Create Run'}
           </button>
+
         </form>
       </main>
     </div>
