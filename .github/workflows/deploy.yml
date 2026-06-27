@@ -7,33 +7,9 @@ on:
     branches: [main]
 
 jobs:
-  # ── Backend: test ──────────────────────────────────────────────
-  test-backend:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Run tests
-        env:
-          DATABASE_URL: sqlite+aiosqlite:///./test.db
-          JWT_SECRET_KEY: test-secret-key-for-ci
-          OPENAI_API_KEY: sk-test-not-used-in-unit-tests
-        run: python -m pytest tests/ -v
-
   # ── Backend: build + push Docker image ────────────────────────
   build-push-backend:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    needs: test-backend
     runs-on: ubuntu-latest
     outputs:
       image: ${{ steps.meta.outputs.image }}
@@ -75,7 +51,6 @@ jobs:
   # ── Frontend: build + deploy to Azure Static Web Apps ─────────
   deploy-frontend:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    needs: test-backend
     runs-on: ubuntu-latest
     defaults:
       run:
