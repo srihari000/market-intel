@@ -27,7 +27,7 @@ export default function Login() {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <h1>Market Intelligence</h1>
+        <h1>Market Research Intelligence Assistant</h1>
         <h2>Sign in</h2>
         <form onSubmit={handleSubmit}>
           <label>Email</label>

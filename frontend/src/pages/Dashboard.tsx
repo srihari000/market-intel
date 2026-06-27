@@ -38,7 +38,7 @@ export default function Dashboard() {
   return (
     <div className="page">
       <header className="page-header">
-        <h1>Market Intelligence</h1>
+        <h1>Market Research Intelligence Assistant</h1>
         <div className="header-actions">
           <Link to="/runs/new" className="btn-primary">+ Start Analysis</Link>
           <button className="btn-ghost" onClick={handleLogout}>Logout</button>

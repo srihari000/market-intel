@@ -1,4 +1,4 @@
-# Market Intelligence Assistant
+# Market Research Intelligence Assistant
 
 An AI-powered platform that turns raw competitor URLs into structured market intelligence reports — with live pipeline streaming, per-claim hallucination verification, and full LLM observability.
 
@@ -239,7 +239,13 @@ Watch at: `github.com/srihari000/market-intel/actions`
 ### Live Streaming
 - Server-Sent Events stream pipeline progress step by step to the browser
 - Progress messages: scrape count, re-analysis attempt number, final confidence %
-- SSE uses `?token=` query param (JWT in header not supported by EventSource)
+- Frontend uses `fetch` + `ReadableStream` to read the SSE stream; JWT passed as `?token=` query param
+
+### CI/CD Pipeline
+- GitHub Actions workflow: build Docker image → push to Docker Hub → deploy backend to Azure Container Apps → build and deploy frontend to Azure Static Web Apps
+- Triggered automatically on every push to `main`
+- Backend and frontend deploy in parallel (independent jobs)
+- Frontend build injects `VITE_API_URL` at build time from GitHub Secrets
 
 ### Observability
 - LangSmith `@traceable` on analyzer and judge agents
