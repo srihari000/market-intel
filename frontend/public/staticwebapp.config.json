@@ -2,5 +2,13 @@
   "navigationFallback": {
     "rewrite": "/index.html",
     "exclude": ["/assets/*"]
+  },
+  "mimeTypes": {
+    ".js": "application/javascript",
+    ".mjs": "application/javascript",
+    ".css": "text/css",
+    ".json": "application/json",
+    ".svg": "image/svg+xml",
+    ".woff2": "font/woff2"
   }
 }
