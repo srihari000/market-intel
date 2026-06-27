@@ -26,15 +26,9 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://market:market@db:5432/market
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-changeme}
-      # --- OpenAI Direct (active) ---
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       OPENAI_ANALYZER_MODEL: ${OPENAI_ANALYZER_MODEL:-gpt-4o}
       OPENAI_JUDGE_MODEL: ${OPENAI_JUDGE_MODEL:-gpt-4o-mini}
-      # --- Azure OpenAI (commented out — uncomment when Azure access is approved) ---
-      # AZURE_OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY}
-      # AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT}
-      # AZURE_OPENAI_DEPLOYMENT: ${AZURE_OPENAI_DEPLOYMENT:-gpt-4o}
-      # AZURE_OPENAI_API_VERSION: ${AZURE_OPENAI_API_VERSION:-2024-02-01}
       CORS_ORIGINS: "http://localhost:3000,http://localhost:3001,http://localhost:80"
       LANGSMITH_TRACING: ${LANGSMITH_TRACING:-false}
       LANGSMITH_API_KEY: ${LANGSMITH_API_KEY:-}

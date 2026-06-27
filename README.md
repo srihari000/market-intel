@@ -177,8 +177,6 @@ npm run dev     # http://localhost:5173
 
 ## Production Deployment (Azure)
 
-Full step-by-step guide: [`/AI/AZURE_DEPLOY_GUIDE.md`](../AZURE_DEPLOY_GUIDE.md)
-
 ### Summary
 
 | Resource | Service | Tier |
