@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     OPENAI_ANALYZER_MODEL: str = "gpt-4o"
     OPENAI_JUDGE_MODEL: str = "gpt-4o-mini"
 
-    # --- Azure OpenAI (commented out — switch back when Azure access is approved) ---
+    # --- Azure OpenAI (uncomment to switch from direct OpenAI to Azure OpenAI) ---
     # AZURE_OPENAI_API_KEY: str
     # AZURE_OPENAI_ENDPOINT: str
     # AZURE_OPENAI_DEPLOYMENT: str = "gpt-4o"

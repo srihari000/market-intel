@@ -2,7 +2,7 @@ import json
 import logging
 # --- OpenAI Direct (active) ---
 from openai import AsyncOpenAI
-# --- Azure OpenAI (commented out — switch back when Azure access is approved) ---
+# --- Azure OpenAI (uncomment to switch from direct OpenAI to Azure OpenAI) ---
 # from openai import AsyncAzureOpenAI
 from langsmith import traceable
 from langsmith.wrappers import wrap_openai
@@ -82,7 +82,7 @@ async def judge(report: dict, sources: dict[str, str]) -> dict:
 
     # --- OpenAI Direct (active) ---
     client = wrap_openai(AsyncOpenAI(api_key=settings.OPENAI_API_KEY))
-    # --- Azure OpenAI (commented out — switch back when Azure access is approved) ---
+    # --- Azure OpenAI (uncomment to switch from direct OpenAI to Azure OpenAI) ---
     # client = AsyncAzureOpenAI(
     #     api_key=settings.AZURE_OPENAI_API_KEY,
     #     azure_endpoint=settings.AZURE_OPENAI_ENDPOINT,
