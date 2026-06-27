@@ -155,16 +155,6 @@ npm install
 npm run dev     # http://localhost:5173
 ```
 
-**Step 3 — Run tests:**
-```bash
-cd backend
-source .venv/bin/activate
-DATABASE_URL=sqlite+aiosqlite:///./test.db \
-JWT_SECRET_KEY=test-key \
-OPENAI_API_KEY=sk-test \
-python -m pytest tests/ -v
-```
-
 ---
 
 ## Environment Variables
@@ -215,7 +205,7 @@ Full step-by-step guide: [`/AI/AZURE_DEPLOY_GUIDE.md`](../AZURE_DEPLOY_GUIDE.md)
 
 ```bash
 git push origin main
-# GitHub Actions handles: test → build → push Docker → deploy backend → deploy frontend
+# GitHub Actions handles: build → push Docker → deploy backend → deploy frontend
 ```
 
 Watch at: `github.com/srihari000/market-intel/actions`
@@ -317,6 +307,37 @@ Workspace model — multiple users under one organization share runs and reports
 
 ---
 
+## Screenshots
+
+### CI/CD Pipeline — GitHub Actions
+![CI/CD Pipeline](docs/project_screen_shots/CI_CD.png)
+
+### Login
+![Login](docs/project_screen_shots/Login.png)
+
+### Run Form
+![Run Form](docs/project_screen_shots/Run_Form.png)
+
+### Pipeline Running
+![Pipeline Running](docs/project_screen_shots/Run_Pipeline.png)
+
+### Analysis Results
+![Analysis Results](docs/project_screen_shots/Analasis_Results.png)
+
+### Dashboard
+![Dashboard](docs/project_screen_shots/Runs_Dashboard.png)
+
+### Azure Application Logs
+![Azure Application Logs](docs/project_screen_shots/Azure_Application_Logs.png)
+
+### LangSmith Trace
+![LangSmith Trace](docs/project_screen_shots/Langsmith_Trace.png)
+
+### LangSmith Dashboard
+![LangSmith Dashboard](docs/project_screen_shots/Langsmith_Dashbord.png)
+
+---
+
 ## Project Structure
 
 ```
@@ -340,7 +361,6 @@ market-intel/
 │   │       ├── security.py    # JWT + bcrypt helpers
 │   │       └── limiter.py     # slowapi rate limiter
 │   ├── alembic/               # DB migrations
-│   ├── tests/                 # pytest test suite
 │   ├── Dockerfile
 │   └── requirements.txt
 │
@@ -348,11 +368,15 @@ market-intel/
 │   ├── src/
 │   │   ├── components/
 │   │   │   ├── ReportViewer.tsx     # themes + activities + inline verdict badges
-│   │   │   ├── HallucinationBadge.tsx
-│   │   │   └── RunForm.tsx
-│   │   ├── pages/             # LoginPage, RegisterPage, DashboardPage, RunPage
-│   │   ├── types/index.ts     # TypeScript interfaces
-│   │   └── api/               # axios client + interceptors
+│   │   │   └── StreamProgress.tsx   # animated 3-stage pipeline progress tracker
+│   │   ├── pages/
+│   │   │   ├── Login.tsx            # auth — sign in
+│   │   │   ├── Register.tsx         # auth — create account
+│   │   │   ├── Dashboard.tsx        # list of all runs
+│   │   │   ├── NewRun.tsx           # create analysis run form
+│   │   │   └── RunDetail.tsx        # live stream + completed report view
+│   │   ├── types/index.ts           # TypeScript interfaces
+│   │   └── api/client.ts            # axios instance + interceptors + runsApi
 │   ├── public/
 │   │   └── staticwebapp.config.json  # Azure SPA routing fallback
 │   └── package.json
