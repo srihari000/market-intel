@@ -16,6 +16,9 @@ engine = create_async_engine(
         "max_overflow": 10,
         "pool_timeout": 30,
         "pool_recycle": 1800,
+        # Supabase free tier uses PgBouncer in transaction mode which breaks
+        # asyncpg prepared statements — disabling the cache fixes it.
+        "connect_args": {"statement_cache_size": 0},
     })
 )
 async_session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
