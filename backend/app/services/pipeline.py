@@ -122,7 +122,6 @@ async def save_node(state: PipelineState, config: RunnableConfig) -> dict:
         run_id=run.id,
         themes=themes,
         competitor_activities=activities,
-        raw_sources={},
         hallucination_verdict={
             "overall_score": verdict.get("overall_score", 1.0),
             "reasoning": verdict.get("reasoning", ""),

@@ -1,9 +1,6 @@
 import json
 import logging
-# --- OpenAI Direct (active) ---
 from openai import AsyncOpenAI
-# --- Azure OpenAI (uncomment to switch from direct OpenAI to Azure OpenAI) ---
-# from openai import AsyncAzureOpenAI
 from langsmith import traceable
 from langsmith.wrappers import wrap_openai
 from pydantic import ValidationError
@@ -80,14 +77,7 @@ async def judge(report: dict, sources: dict[str, str]) -> dict:
         logger.info("Judge short-circuit — empty report, score 1.0")
         return {"theme_verdicts": [], "activity_verdicts": [], "overall_score": 1.0, "reasoning": "No claims to verify."}
 
-    # --- OpenAI Direct (active) ---
     client = wrap_openai(AsyncOpenAI(api_key=settings.OPENAI_API_KEY))
-    # --- Azure OpenAI (uncomment to switch from direct OpenAI to Azure OpenAI) ---
-    # client = AsyncAzureOpenAI(
-    #     api_key=settings.AZURE_OPENAI_API_KEY,
-    #     azure_endpoint=settings.AZURE_OPENAI_ENDPOINT,
-    #     api_version=settings.AZURE_OPENAI_API_VERSION,
-    # )
 
     sources_text = "\n\n".join(
         f"SOURCE {i} ({url}):\n{sanitize_scraped_content(text[:MAX_SOURCE_CHARS_FOR_JUDGE])}"

@@ -1,9 +1,6 @@
 import json
 import logging
-# --- OpenAI Direct (active) ---
 from openai import AsyncOpenAI
-# --- Azure OpenAI (uncomment to switch from direct OpenAI to Azure OpenAI) ---
-# from openai import AsyncAzureOpenAI
 from langsmith import traceable
 from langsmith.wrappers import wrap_openai
 from pydantic import ValidationError
@@ -79,14 +76,7 @@ async def analyze(sources: dict[str, str], competitors: list[str], topics: list[
         len(sources), competitors or "any", topics or "any",
     )
 
-    # --- OpenAI Direct (active) ---
     client = wrap_openai(AsyncOpenAI(api_key=settings.OPENAI_API_KEY))
-    # --- Azure OpenAI (uncomment to switch from direct OpenAI to Azure OpenAI) ---
-    # client = AsyncAzureOpenAI(
-    #     api_key=settings.AZURE_OPENAI_API_KEY,
-    #     azure_endpoint=settings.AZURE_OPENAI_ENDPOINT,
-    #     api_version=settings.AZURE_OPENAI_API_VERSION,
-    # )
 
     # Sanitize user-supplied inputs before inserting into prompt
     safe_competitors = [sanitize_user_input(c) for c in competitors]
