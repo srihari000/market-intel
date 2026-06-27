@@ -23,6 +23,7 @@ export default function NewRun() {
 
   const [competitors, setCompetitors] = useState<string[]>([]);
   const [competitorInput, setCompetitorInput] = useState('');
+  const [competitorsTouched, setCompetitorsTouched] = useState(false);
 
   const [topics, setTopics] = useState<string[]>([]);
   const [topicInput, setTopicInput] = useState('');
@@ -30,17 +31,18 @@ export default function NewRun() {
   const [urls, setUrls] = useState<string[]>([]);
   const [urlInput, setUrlInput] = useState('');
   const [urlError, setUrlError] = useState('');
+  const [urlsTouched, setUrlsTouched] = useState(false);
 
   const [submitError, setSubmitError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const titleError = titleTouched && !title.trim() ? 'Title is required.' : '';
-  const competitorsError = competitors.length === 0 && submitError ? 'Add at least one competitor.' : '';
-  const urlsError = urls.length === 0 && submitError ? 'Add at least one source URL.' : '';
+  const competitorsError = competitorsTouched && competitors.length === 0 ? 'Add at least one competitor.' : '';
+  const urlsError = urlsTouched && urls.length === 0 ? 'Add at least one source URL.' : '';
 
-  function addTag(value: string, list: string[], setList: (v: string[]) => void, setInput: (v: string) => void) {
+  function addTag(value: string, list: string[], setList: (v: string[]) => void, setInput: (v: string) => void, onAdd?: () => void) {
     const trimmed = value.trim();
-    if (trimmed && !list.includes(trimmed)) setList([...list, trimmed]);
+    if (trimmed && !list.includes(trimmed)) { setList([...list, trimmed]); onAdd?.(); }
     setInput('');
   }
 
@@ -67,10 +69,9 @@ export default function NewRun() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setTitleTouched(true);
-    if (!title.trim() || competitors.length === 0 || urls.length === 0) {
-      setSubmitError('Please fix the errors above.');
-      return;
-    }
+    setCompetitorsTouched(true);
+    setUrlsTouched(true);
+    if (!title.trim() || competitors.length === 0 || urls.length === 0) return;
     setSubmitError('');
     setLoading(true);
     try {
@@ -86,7 +87,7 @@ export default function NewRun() {
     <div className="page">
       <header className="page-header">
         <Link to="/dashboard" className="btn-ghost">← Back</Link>
-        <h1>New Analysis Run</h1>
+        <h1>Start Analysis</h1>
       </header>
 
       <main className="form-page">
@@ -120,10 +121,11 @@ export default function NewRun() {
               <input
                 value={competitorInput}
                 onChange={e => setCompetitorInput(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(competitorInput, competitors, setCompetitors, setCompetitorInput); } }}
+                onBlur={() => setCompetitorsTouched(true)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(competitorInput, competitors, setCompetitors, setCompetitorInput, () => setCompetitorsTouched(false)); } }}
                 placeholder="Type and press Enter"
               />
-              <button type="button" className="btn-sm" onClick={() => addTag(competitorInput, competitors, setCompetitors, setCompetitorInput)}>Add</button>
+              <button type="button" className="btn-sm" onClick={() => addTag(competitorInput, competitors, setCompetitors, setCompetitorInput, () => setCompetitorsTouched(false))}>Add</button>
             </div>
             {competitorsError && <span className="field-hint error">{competitorsError}</span>}
           </div>
@@ -165,9 +167,10 @@ export default function NewRun() {
               <input
                 value={urlInput}
                 onChange={e => { setUrlInput(e.target.value); setUrlError(''); }}
+                onBlur={() => setUrlsTouched(true)}
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addUrl(); } }}
                 placeholder="https://example.com/blog/post"
-                style={urlError ? { borderColor: '#dc2626' } : {}}
+                style={urlError || urlsError ? { borderColor: '#dc2626' } : {}}
               />
               <button type="button" className="btn-sm" onClick={addUrl}>Add</button>
             </div>
@@ -175,12 +178,10 @@ export default function NewRun() {
             {urlsError && <span className="field-hint error">{urlsError}</span>}
           </div>
 
-          {submitError && (
-            <p className="error">{submitError}</p>
-          )}
+          {submitError && <p className="error">{submitError}</p>}
 
           <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? 'Creating…' : 'Create Run'}
+            {loading ? 'Starting…' : 'Start Analysis'}
           </button>
 
         </form>

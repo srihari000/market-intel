@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { SSEEvent } from '../types';
 
 interface Props {
@@ -7,9 +7,26 @@ interface Props {
   onError: (msg: string) => void;
 }
 
+type StageStatus = 'waiting' | 'active' | 'done';
+
+interface Stage {
+  key: string;
+  label: string;
+  icon: string;
+  description: string;
+}
+
+const STAGES: Stage[] = [
+  { key: 'scraping',  label: 'Scraping URLs',       icon: '🌐', description: 'Fetching content from all source URLs in parallel' },
+  { key: 'analyzing', label: 'Analyzing Content',    icon: '🧠', description: 'GPT-4o extracting themes and competitor activities' },
+  { key: 'judging',   label: 'Verifying Claims',     icon: '🔍', description: 'GPT-4o-mini fact-checking every claim against sources' },
+];
+
 export default function StreamProgress({ url, onComplete, onError }: Props) {
-  const [events, setEvents] = useState<SSEEvent[]>([]);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const [statuses, setStatuses] = useState<Record<string, StageStatus>>({
+    scraping: 'waiting', analyzing: 'waiting', judging: 'waiting',
+  });
+  const [activeMsg, setActiveMsg] = useState<string>('Starting pipeline…');
 
   useEffect(() => {
     let cancelled = false;
@@ -29,20 +46,13 @@ export default function StreamProgress({ url, onComplete, onError }: Props) {
 
         while (true) {
           const { done, value } = await reader.read();
-
           if (done) {
-            // Stream closed by server
-            if (!cancelled && !completed) {
-              onError('Stream ended before pipeline completed');
-            }
+            if (!cancelled && !completed) onError('Stream ended unexpectedly');
             break;
           }
-
           if (cancelled) break;
 
           buffer += decoder.decode(value, { stream: true });
-
-          // SSE messages separated by double newline
           const parts = buffer.split('\n\n');
           buffer = parts.pop() ?? '';
 
@@ -50,13 +60,25 @@ export default function StreamProgress({ url, onComplete, onError }: Props) {
             const line = part.trim();
             if (!line.startsWith('data: ')) continue;
             let data: SSEEvent;
-            try {
-              data = JSON.parse(line.slice(6));
-            } catch {
-              continue;
+            try { data = JSON.parse(line.slice(6)); } catch { continue; }
+
+            if (data.type === 'progress' && data.step) {
+              setStatuses(prev => {
+                const next = { ...prev };
+                // mark previous stages done
+                let found = false;
+                for (const s of STAGES) {
+                  if (s.key === data.step) { next[s.key] = 'active'; found = true; }
+                  else if (!found) next[s.key] = 'done';
+                }
+                return next;
+              });
+              if (data.message) setActiveMsg(data.message);
             }
-            setEvents(prev => [...prev, data]);
+
             if (data.type === 'complete') {
+              setStatuses({ scraping: 'done', analyzing: 'done', judging: 'done' });
+              setActiveMsg('Analysis complete!');
               completed = true;
               if (!cancelled) onComplete();
               return;
@@ -75,25 +97,31 @@ export default function StreamProgress({ url, onComplete, onError }: Props) {
     return () => { cancelled = true; };
   }, [url]);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [events]);
-
-  const STEP_ICON: Record<string, string> = {
-    scraping: '🌐',
-    analyzing: '🧠',
-    judging: '🔍',
-  };
-
   return (
-    <div className="stream-log">
-      {events.map((ev, i) => (
-        <div key={i} className={`stream-event stream-event--${ev.type}`}>
-          {ev.step && <span className="step-icon">{STEP_ICON[ev.step] ?? '⚙️'}</span>}
-          <span>{ev.message ?? (ev.type === 'complete' ? 'Analysis complete!' : ev.type)}</span>
-        </div>
-      ))}
-      <div ref={bottomRef} />
+    <div className="pipeline-progress">
+      <p className="pipeline-status-msg">{activeMsg}</p>
+      <div className="pipeline-stages">
+        {STAGES.map((stage, idx) => {
+          const status = statuses[stage.key];
+          return (
+            <div key={stage.key} className={`pipeline-stage pipeline-stage--${status}`}>
+              <div className="stage-connector">
+                {idx > 0 && <div className={`stage-line stage-line--${statuses[STAGES[idx - 1].key] === 'done' ? 'done' : 'waiting'}`} />}
+              </div>
+              <div className="stage-circle">
+                {status === 'done'   && <span className="stage-check">✓</span>}
+                {status === 'active' && <span className="stage-spinner" />}
+                {status === 'waiting' && <span className="stage-dot" />}
+              </div>
+              <div className="stage-info">
+                <span className="stage-icon">{stage.icon}</span>
+                <span className="stage-label">{stage.label}</span>
+                <span className="stage-desc">{stage.description}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

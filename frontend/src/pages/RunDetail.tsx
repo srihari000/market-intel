@@ -31,6 +31,8 @@ export default function RunDetail() {
       const reportRes = await runsApi.getReport(id);
       setRun(prev => prev ? { ...prev, status: 'completed' } : prev);
       setReport(reportRes.data);
+      // Let the all-done state show briefly before switching to report
+      await new Promise(resolve => setTimeout(resolve, 1500));
       setStreaming(false);
     } catch {
       setStreaming(false);
@@ -91,7 +93,7 @@ export default function RunDetail() {
           </div>
         )}
 
-        {run.status === 'completed' && report && (
+        {run.status === 'completed' && report && !streaming && (
           <ReportViewer report={report} />
         )}
       </main>

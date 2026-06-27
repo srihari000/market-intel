@@ -66,7 +66,7 @@ async def judge_node(state: PipelineState, config: RunnableConfig) -> dict:
     run_id = state["run_id"]
     logger.info("[%s] judge_node start", run_id)
     verdict = await judge(state["analysis"], state["raw_sources"])
-    score = verdict.get("score", 0)
+    score = verdict.get("overall_score", 0)
     logger.info("[%s] judge_node done — score: %.2f", run_id, score)
     return {"verdict": verdict}
 
@@ -122,7 +122,7 @@ async def save_node(state: PipelineState, config: RunnableConfig) -> dict:
         run_id=run.id,
         themes=themes,
         competitor_activities=activities,
-        raw_sources=state["raw_sources"],
+        raw_sources={},
         hallucination_verdict={
             "overall_score": verdict.get("overall_score", 1.0),
             "reasoning": verdict.get("reasoning", ""),

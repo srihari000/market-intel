@@ -40,7 +40,7 @@ export default function Dashboard() {
       <header className="page-header">
         <h1>Market Intelligence</h1>
         <div className="header-actions">
-          <Link to="/runs/new" className="btn-primary">+ New Run</Link>
+          <Link to="/runs/new" className="btn-primary">+ Start Analysis</Link>
           <button className="btn-ghost" onClick={handleLogout}>Logout</button>
         </div>
       </header>
