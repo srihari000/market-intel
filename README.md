@@ -126,7 +126,7 @@ LANGSMITH_PROJECT=market-intel
 docker compose up --build
 
 # Backend:  http://localhost:8000
-# Frontend: http://localhost:5173
+# Frontend: http://localhost:3001
 ```
 
 ### Option B — Without Docker (hot-reload development)
@@ -218,7 +218,7 @@ Watch at: `github.com/srihari000/market-intel/actions`
 - **GPT-4o analyzer** — extracts key market themes and competitor activities from scraped content; topics treated as broad domain filters not keyword matches
 - **GPT-4o-mini judge** — verifies every claim against original sources; returns indexed per-claim verdicts (`theme_verdicts[]`, `activity_verdicts[]`) with `status`, `confidence`, and `reason`
 
-### Hallucination Verification UI
+### Source Verification UI
 - Inline 🟢 **Verified** / 🔴 **Flagged** badge on every theme card and competitor activity row
 - Confidence percentage per claim
 - Reason shown for flagged claims
@@ -280,11 +280,8 @@ Enable `pgvector` on the existing Supabase PostgreSQL. At ingest time, chunk eac
 ### Result Caching
 Cache completed analysis results by `SHA256(sorted_urls + sorted_competitors + sorted_topics)` with a configurable TTL (default 1 hour). Store in Redis or PostgreSQL. If a user submits the same query within TTL, return instantly without calling OpenAI. Eliminates duplicate spend — a query repeated 10 times a day saves ~90% of token cost for that query.
 
-### Background Job Queue
-Move the LangGraph pipeline out of the request-response cycle into a Celery + Redis task queue. API returns a `run_id` immediately; a worker picks up the job asynchronously. Benefits: (1) frees uvicorn workers from long-running LLM calls, (2) supports horizontal scaling of workers independently from the API, (3) enables retry on worker crash without losing the run.
-
-### Async Job Queue (Alternative: ARQ / FastAPI BackgroundTasks)
-Lighter-weight alternative to Celery for Python async codebases. ARQ uses Redis for the queue but keeps everything in asyncio — no separate process model needed. Easier to deploy on Azure Container Apps where you want a single container type.
+### Event-Driven Async Background Jobs
+Move the LangGraph pipeline out of the request-response cycle into an async event-driven job queue. API returns a `run_id` immediately; a worker picks up the job asynchronously. Benefits: (1) frees uvicorn workers from long-running LLM calls, (2) supports horizontal scaling of workers independently from the API, (3) enables retry on worker crash without losing the run. For high-throughput production workloads, an event streaming platform offers stronger guarantees — persistent message logs, consumer group replay, partitioned parallel processing, and guaranteed at-least-once delivery across distributed workers.
 
 ### Scheduled / Recurring Analysis
 Save a URL set + competitor list as a "Watch" with a cron schedule (e.g. every Monday 8am). The system auto-runs the pipeline, generates a diff report showing what changed since the last run, and sends an email/Slack notification. Useful for ongoing competitive monitoring without manual triggering.
@@ -380,7 +377,7 @@ market-intel/
 │   └── package.json
 │
 ├── .github/
-│   └── workflows/deploy.yml   # CI/CD: test → build → push → deploy
+│   └── workflows/deploy.yml   # CI/CD: build → push → deploy
 ├── docker-compose.yml
 ├── .env.example
 └── README.md
