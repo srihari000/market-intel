@@ -85,7 +85,7 @@ export default function ReportViewer({ report }: Props) {
       </section>
 
       <section className="report-section">
-        <h2>Hallucination Verification</h2>
+        <h2>Source Verification</h2>
         <div className="overall-verdict">
           <span className="overall-score" style={{ color: overallPct >= 90 ? '#10b981' : overallPct >= 70 ? '#f59e0b' : '#ef4444' }}>
             {overallPct}% overall confidence
