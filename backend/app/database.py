@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.pool import NullPool
 from app.config import settings
 
 
@@ -7,19 +8,15 @@ class Base(DeclarativeBase):
     pass
 
 
-_is_sqlite = settings.DATABASE_URL.startswith("sqlite")
+# NullPool opens a fresh connection per request and closes it immediately.
+# This permanently fixes DuplicatePreparedStatementError on Supabase free tier,
+# which uses PgBouncer in transaction mode — named prepared statements conflict
+# across backends even with statement_cache_size=0.
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=False,
-    **({} if _is_sqlite else {
-        "pool_size": 5,
-        "max_overflow": 10,
-        "pool_timeout": 30,
-        "pool_recycle": 1800,
-        # Supabase free tier uses PgBouncer in transaction mode which breaks
-        # asyncpg prepared statements — disabling the cache fixes it.
-        "connect_args": {"statement_cache_size": 0},
-    })
+    poolclass=NullPool,
+    connect_args={"statement_cache_size": 0},
 )
 async_session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
